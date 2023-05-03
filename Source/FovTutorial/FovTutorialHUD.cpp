@@ -6,6 +6,8 @@
 #include "TextureResource.h"
 #include "CanvasItem.h"
 #include "DarkMagic/Utils.h"
+#include "Engine/LocalPlayer.h"
+#include "GameFramework/PlayerController.h"
 #include "UObject/ConstructorHelpers.h"
 
 AFovTutorialHUD::AFovTutorialHUD()

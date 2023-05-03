@@ -2,6 +2,8 @@
 
 #include "MySkeletalMeshComponent.h"
 #include "DarkMagic/Utils.h"
+#include "Engine/LocalPlayer.h"
+#include "GameFramework/PlayerController.h"
 
 FMatrix UMySkeletalMeshComponent::GetRenderMatrix() const
 {

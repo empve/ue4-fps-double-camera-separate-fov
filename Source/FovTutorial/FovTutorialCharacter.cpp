@@ -13,6 +13,7 @@
 #include "XRMotionControllerBase.h" // for FXRMotionControllerBase::RightHandSourceId
 #include "MySkeletalMeshComponent.h"
 #include "DarkMagic/Utils.h"
+#include "Engine/LocalPlayer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 
