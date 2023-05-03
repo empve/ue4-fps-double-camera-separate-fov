@@ -6,15 +6,25 @@
 // ProductFilter is for defining how long the test will take to run
 // For more information check AutomationTest.h
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FFovTutorialTest,
-	"Fov.Tutorial.Test",
+	FDefectGraphicsFovTest,
+	"Defect.Graphics.Fov.Test",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter
 )
 
 // Your function must be named RunTest
 // The struct name here "FHeroTest" must match the one in the macro above
-bool FFovTutorialTest::RunTest(const FString& Parameters)
+bool FDefectGraphicsFovTest::RunTest(const FString& Parameters)
 {
-	AddInfo(TEXT("SUCCESS **********************"));
+	AddInfo(TEXT(R"(
+Compare matrices from a skeletal mesh component with a desired horizontal FOV.....
+		
+Compare inverse-transpose matrices...
+
+Compare mesh translate in world space...
+
+Compare mesh scale...
+
+*************** Success ***************
+)"));
 	return true;
 }
