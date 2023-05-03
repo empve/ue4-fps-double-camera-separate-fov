@@ -29,5 +29,7 @@ public:
 	GENERATED_BODY()
 	virtual FMatrix GetRenderMatrix() const override;
 
-	FMatrices GetMatrices(UWorld& World) const;
+private:
+	// GetMatrices must only be called when the PlayerController is valid and there is a LocalPlayer
+	FMatrices GetMatrices(const UWorld& World) const;
 };

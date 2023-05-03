@@ -10,49 +10,54 @@ FMatrix UMySkeletalMeshComponent::GetRenderMatrix() const
 
 	const FTransform ComponentTransform = GetComponentTransform();
 
-	APlayerController *PlayerController = GetWorld()->GetFirstPlayerController();
-	if (PlayerController)
+	if (const APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
 	{
-		ULocalPlayer *LocalPlayer = Cast<ULocalPlayer>(PlayerController->Player);
-
-		if (LocalPlayer && LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->Viewport)
+		if (const auto* LocalPlayer = Cast<ULocalPlayer>(PlayerController->Player); LocalPlayer && LocalPlayer->
+			ViewportClient && LocalPlayer->ViewportClient->Viewport)
 		{
 			FSceneViewFamilyContext ViewFamily(
-				FSceneViewFamily::ConstructionValues(LocalPlayer->ViewportClient->Viewport, GetWorld()->Scene,
-													 LocalPlayer->ViewportClient->EngineShowFlags)
-					.SetRealtimeUpdate(true));
+				FSceneViewFamily::ConstructionValues(
+					LocalPlayer->ViewportClient->Viewport,
+					GetWorld()->Scene,
+					LocalPlayer->ViewportClient->EngineShowFlags
+				).SetRealtimeUpdate(true)
+			);
 
-			const FMatrices Matrices = GetMatrices(*GetWorld());
+			const auto [
+				ViewMatrix,
+				InverseViewMatrix,
+				ProjectionMatrix,
+				InverseProjectionMatrix,
+				InverseViewProjectionMatrix,
+				NearClippingPlaneDistance
+			] = GetMatrices(*GetWorld());
 
 			const auto ViewportSize = LocalPlayer->ViewportClient->Viewport->GetSizeXY();
 			const float Width = ViewportSize.X;
 			const float Height = ViewportSize.Y;
-			const float TargetWidth = 1920.0f;
-			const float TargetHeight = 1080.0f;
-			const float NearClippingPlaneDistance = Matrices.NearClippingPlaneDistance;
-
+			constexpr float TargetHeight = 1080.0f;
+			constexpr float TargetWidth = 1920.0f;
 			FMatrix NewProjectionMatrix;
 
-			const auto MaxFit = DarkMagic::GetMaxFittingResolution(1920.0f, 1080.f, ViewportSize.X, ViewportSize.Y);
-
-			// static_assert(ERHIZBuffer::IsInverted, "Z Buffer not inverted. Need to use FPerspectiveMatrix instead");
-
-			if (MaxFit.AspectCorrection == DarkMagic::ResolutionInformation::EAspectCorrection::PILLAR_BOX)
+			if (const auto [MaxFittingResolution, PixelScale, AspectCorrection] =
+					DarkMagic::GetMaxFittingResolution(TargetWidth, TargetHeight, ViewportSize.X, ViewportSize.Y);
+				AspectCorrection ==
+				DarkMagic::ResolutionInformation::EAspectCorrection::PILLAR_BOX)
 			{
-				const float HorPlusFov = DarkMagic::HorFovToHorPlus(DesiredHorizontalFov, 1920.0f, 1080.f, ViewportSize.X, ViewportSize.Y);
+				const float HorPlusFov = DarkMagic::HorFovToHorPlus(DesiredHorizontalFov, 1920.0f, 1080.f,
+				                                                    ViewportSize.X, ViewportSize.Y);
 				const float DesiredHalfFovRad = HorPlusFov * PI / 360.0f;
-				NewProjectionMatrix = FReversedZPerspectiveMatrix(DesiredHalfFovRad, Width, Height, NearClippingPlaneDistance);
+				NewProjectionMatrix = FReversedZPerspectiveMatrix(DesiredHalfFovRad, Width, Height,
+				                                                  NearClippingPlaneDistance);
 			}
 			else
 			{
 				const float DesiredHalfFovRad = DesiredHorizontalFov * PI / 360.0f;
-				NewProjectionMatrix = FReversedZPerspectiveMatrix(DesiredHalfFovRad, TargetWidth, TargetHeight, NearClippingPlaneDistance);
+				NewProjectionMatrix = FReversedZPerspectiveMatrix(DesiredHalfFovRad, TargetWidth, TargetHeight,
+				                                                  NearClippingPlaneDistance);
 			}
-
-			const FMatrix ViewMatrix = Matrices.ViewMatrix;
-
 			NewViewProjectionMatrix = ViewMatrix * NewProjectionMatrix;
-			InverseOldViewProjectionMatrix = Matrices.InverseViewProjectionMatrix;
+			InverseOldViewProjectionMatrix = InverseViewProjectionMatrix;
 		}
 	}
 
@@ -60,24 +65,24 @@ FMatrix UMySkeletalMeshComponent::GetRenderMatrix() const
 	return ModelMatrix * NewViewProjectionMatrix * InverseOldViewProjectionMatrix;
 }
 
-FMatrices UMySkeletalMeshComponent::GetMatrices(UWorld &World) const
+FMatrices UMySkeletalMeshComponent::GetMatrices(const UWorld& World) const
 {
 	FMatrices Matrices;
 
 	// Source: https://answers.unrealengine.com/questions/25526/custom-mesh-fov.html
-	APlayerController *PlayerController = World.GetFirstPlayerController();
-	ULocalPlayer *LocalPlayer = Cast<ULocalPlayer>(PlayerController->Player);
+	const APlayerController* PlayerController = World.GetFirstPlayerController();
+	const ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(PlayerController->Player);
 
 	// Get View Origin
 	FVector ViewOrigin;
 	FRotator ViewRotation;
 	PlayerController->GetPlayerViewPoint(/*out*/ ViewOrigin, /*out*/ ViewRotation);
 
-	FMatrix ViewRotationMatrix = FInverseRotationMatrix(ViewRotation) * FMatrix(
-																			FPlane(0, 0, 1, 0),
-																			FPlane(1, 0, 0, 0),
-																			FPlane(0, 1, 0, 0),
-																			FPlane(0, 0, 0, 1));
+	FMatrix ViewRotationMatrix = FInverseRotationMatrix{ViewRotation} * FMatrix(
+		FPlane(0, 0, 1, 0),
+		FPlane(1, 0, 0, 0),
+		FPlane(0, 1, 0, 0),
+		FPlane(0, 0, 0, 1));
 
 	if (!ViewRotationMatrix.GetOrigin().IsNearlyZero(0.0f))
 	{
@@ -101,14 +106,15 @@ FMatrices UMySkeletalMeshComponent::GetMatrices(UWorld &World) const
 	FMinimalViewInfo OutViewInfo;
 	if (PlayerController->PlayerCameraManager != nullptr)
 	{
-		OutViewInfo = PlayerController->PlayerCameraManager->GetCameraCachePOV();
+		OutViewInfo = PlayerController->PlayerCameraManager->GetCameraCacheView();
 		OutViewInfo.FOV = PlayerController->PlayerCameraManager->GetFOVAngle();
 	}
 
 	PlayerController->GetPlayerViewPoint(/*out*/ OutViewInfo.Location, /*out*/ OutViewInfo.Rotation);
 
 	FMinimalViewInfo::CalculateProjectionMatrixGivenView(OutViewInfo, LocalPlayer->AspectRatioAxisConstraint,
-														 LocalPlayer->ViewportClient->Viewport, /*inout*/ ProjectionData);
+	                                                     LocalPlayer->ViewportClient->Viewport, /*inout*/
+	                                                     ProjectionData);
 
 	Matrices.ViewMatrix = ViewMatrix;
 	Matrices.InverseViewMatrix = ViewMatrix.Inverse();
