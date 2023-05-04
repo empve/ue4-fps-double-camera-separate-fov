@@ -7,3 +7,15 @@ Modern shooters use a double camera setup. One camera with a variable field of v
 Code files for [this tutorial on YouTube](https://youtu.be/rlnaDTkLjM0)
 
 [More information](http://tigerpunchsportsclub.com/posts/shooting-practice/)
+
+## Execute unit tests
+
+```shell
+C:\ue5\UE_5.1\Engine\Binaries\Win64\UnrealEditor.exe `
+    'C:\ue5dev\ue4-fps-double-camera-separate-fov\FovTutorial.uproject' `
+    -nosplash -nosound `
+    -ExecCmds='Automation RunTests Defect; Quit' `
+    -TestExit='Automation Test Queue Empty' `
+    -ReportOutputPath='c:\work\tmp' `
+    -Unattended -nopause -nullRHI -log ABSLOG='c:\work\tmp\log.txt'
+```
