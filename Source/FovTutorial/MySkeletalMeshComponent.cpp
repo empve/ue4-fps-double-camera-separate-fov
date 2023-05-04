@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MySkeletalMeshComponent.h"
-#include "DarkMagic/Utils.h"
+#include "FovUtils.h"
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerController.h"
 
@@ -42,11 +42,11 @@ FMatrix UMySkeletalMeshComponent::GetRenderMatrix() const
 			FMatrix NewProjectionMatrix;
 
 			if (const auto [MaxFittingResolution, PixelScale, AspectCorrection] =
-					DarkMagic::GetMaxFittingResolution(TargetWidth, TargetHeight, ViewportSize.X, ViewportSize.Y);
+					FovUtils::GetMaxFittingResolution(TargetWidth, TargetHeight, ViewportSize.X, ViewportSize.Y);
 				AspectCorrection ==
-				DarkMagic::ResolutionInformation::EAspectCorrection::PILLAR_BOX)
+				FovUtils::ResolutionInformation::EAspectCorrection::PILLAR_BOX)
 			{
-				const float HorPlusFov = DarkMagic::HorFovToHorPlus(DesiredHorizontalFov, 1920.0f, 1080.f,
+				const float HorPlusFov = FovUtils::HorFovToHorPlus(DesiredHorizontalFov, 1920.0f, 1080.f,
 				                                                    ViewportSize.X, ViewportSize.Y);
 				const float DesiredHalfFovRad = HorPlusFov * PI / 360.0f;
 				NewProjectionMatrix = FReversedZPerspectiveMatrix(DesiredHalfFovRad, Width, Height,

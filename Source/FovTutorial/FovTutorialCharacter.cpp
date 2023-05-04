@@ -12,7 +12,7 @@
 #include "MotionControllerComponent.h"
 #include "XRMotionControllerBase.h" // for FXRMotionControllerBase::RightHandSourceId
 #include "MySkeletalMeshComponent.h"
-#include "DarkMagic/Utils.h"
+#include "FovUtils.h"
 #include "Engine/LocalPlayer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
@@ -33,7 +33,7 @@ AFovTutorialCharacter::AFovTutorialCharacter()
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
 	FirstPersonCameraComponent->SetRelativeLocation(FVector(-39.56f, 1.75f, 64.f)); // Position the camera
-	FirstPersonCameraComponent->bUsePawnControlRotation = true;	
+	FirstPersonCameraComponent->bUsePawnControlRotation = true;
 
 	MeshFov = CreateDefaultSubobject<UMySkeletalMeshComponent>(TEXT("MeshFov"));
 	MeshFov->SetOnlyOwnerSee(true);
@@ -51,7 +51,7 @@ AFovTutorialCharacter::AFovTutorialCharacter()
 
 	// Create a gun mesh component
 	FP_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FP_Gun"));
-	FP_Gun->SetOnlyOwnerSee(true);			// only the owning player will see this mesh
+	FP_Gun->SetOnlyOwnerSee(true); // only the owning player will see this mesh
 	FP_Gun->bCastDynamicShadow = false;
 	FP_Gun->CastShadow = false;
 	// FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
@@ -77,7 +77,7 @@ AFovTutorialCharacter::AFovTutorialCharacter()
 	// Create a gun and attach it to the right-hand VR controller.
 	// Create a gun mesh component
 	VR_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("VR_Gun"));
-	VR_Gun->SetOnlyOwnerSee(true);			// only the owning player will see this mesh
+	VR_Gun->SetOnlyOwnerSee(true); // only the owning player will see this mesh
 	VR_Gun->bCastDynamicShadow = false;
 	VR_Gun->CastShadow = false;
 	VR_Gun->SetupAttachment(R_MotionController);
@@ -86,7 +86,7 @@ AFovTutorialCharacter::AFovTutorialCharacter()
 	VR_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("VR_MuzzleLocation"));
 	VR_MuzzleLocation->SetupAttachment(VR_Gun);
 	VR_MuzzleLocation->SetRelativeLocation(FVector(0.000004, 53.999992, 10.000000));
-	VR_MuzzleLocation->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));		// Counteract the rotation of the VR gun model.
+	VR_MuzzleLocation->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f)); // Counteract the rotation of the VR gun model.
 
 	// Uncomment the following line to turn motion controllers on by default:
 	//bUsingMotionControllers = true;
@@ -98,7 +98,8 @@ void AFovTutorialCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	//Attach gun mesh component to Skeleton, doing it here because the skeleton is not yet created in the constructor
-	FP_Gun->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
+	FP_Gun->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true),
+	                          TEXT("GripPoint"));
 
 	// Show or hide the two versions of the gun based on whether or not we're using motion controllers.
 	if (bUsingMotionControllers)
@@ -129,13 +130,15 @@ void AFovTutorialCharacter::Tick(float Delta)
 		if (LocalPlayer && LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->Viewport)
 		{
 			const auto ViewportSize = LocalPlayer->ViewportClient->Viewport->GetSizeXY();
-			const auto MaxFit = DarkMagic::GetMaxFittingResolution(1920.0f, 1080.f, ViewportSize.X, ViewportSize.Y);
+			const auto MaxFit = FovUtils::GetMaxFittingResolution(1920.0f, 1080.f, ViewportSize.X, ViewportSize.Y);
 
-			if (MaxFit.AspectCorrection == DarkMagic::ResolutionInformation::EAspectCorrection::PILLAR_BOX)
+			if (MaxFit.AspectCorrection == FovUtils::ResolutionInformation::EAspectCorrection::PILLAR_BOX)
 			{
-				FirstPersonCameraComponent->SetAspectRatio(static_cast<float>(ViewportSize.X) / static_cast<float>(ViewportSize.Y));
-				
-				const float HorPlusFov = DarkMagic::HorFovToHorPlus(InitialFieldOfView, 1920.0f, 1080.f, ViewportSize.X, ViewportSize.Y);
+				FirstPersonCameraComponent->SetAspectRatio(
+					static_cast<float>(ViewportSize.X) / static_cast<float>(ViewportSize.Y));
+
+				const float HorPlusFov = FovUtils::HorFovToHorPlus(InitialFieldOfView, 1920.0f, 1080.f, ViewportSize.X,
+				                                                   ViewportSize.Y);
 				FirstPersonCameraComponent->SetFieldOfView(HorPlusFov);
 				FirstPersonCameraComponent->SetConstraintAspectRatio(false);
 			}
@@ -147,7 +150,6 @@ void AFovTutorialCharacter::Tick(float Delta)
 			}
 		}
 	}
-	
 }
 
 void AFovTutorialCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -198,14 +200,18 @@ void AFovTutorialCharacter::OnFire()
 			{
 				const FRotator SpawnRotation = GetControlRotation();
 				// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-				const FVector SpawnLocation = ((FP_MuzzleLocation != nullptr) ? FP_MuzzleLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
+				const FVector SpawnLocation = ((FP_MuzzleLocation != nullptr)
+					                               ? FP_MuzzleLocation->GetComponentLocation()
+					                               : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
 
 				//Set Spawn Collision Handling Override
 				FActorSpawnParameters ActorSpawnParams;
-				ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+				ActorSpawnParams.SpawnCollisionHandlingOverride =
+					ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
 				// spawn the projectile at the muzzle
-				World->SpawnActor<AFovTutorialProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+				World->SpawnActor<AFovTutorialProjectile>(ProjectileClass, SpawnLocation, SpawnRotation,
+				                                          ActorSpawnParams);
 			}
 		}
 	}
@@ -337,6 +343,6 @@ bool AFovTutorialCharacter::EnableTouchscreenMovement(class UInputComponent* Pla
 		//PlayerInputComponent->BindTouch(EInputEvent::IE_Repeat, this, &AFovTutorialCharacter::TouchUpdate);
 		return true;
 	}
-	
+
 	return false;
 }
